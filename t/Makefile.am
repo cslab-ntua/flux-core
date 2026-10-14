@@ -112,7 +112,7 @@ TESTSCRIPTS = \
 	t0042-rhwloc-gpu-dedup.t \
 	t0043-content-sqlite-gc.t \
 	t0044-gc-cmd.t \
-	t0045-check-json-pack.t \
+	t0045-check-format-args.t \
 	t0046-gc-emptydir.t \
 	t0047-jobid-path.t \
 	t0090-content-enospc.t \
@@ -279,6 +279,7 @@ TESTSCRIPTS = \
 	t2717-python-cli-plugins.t \
 	t2718-python-cli-job-shape.t \
 	t2720-python-cli-multi-prog.t \
+	t2721-python-cli-cosched-plugin.t \
 	t2800-jobs-cmd-multiuser.t \
 	t2800-jobs-recursive.t \
 	t2800-jobs-instance-info.t \
@@ -484,7 +485,7 @@ dist_check_SCRIPTS = \
 	scripts/sqlite-write.py \
 	scripts/pipe.py \
 	scripts/rreq-reader.py \
-	scripts/test-check-json-pack.py \
+	scripts/test-check-format-args.py \
 	valgrind/valgrind-workload.sh \
 	valgrind/workload.d/job \
 	valgrind/workload.d/job-info \
@@ -607,6 +608,7 @@ check_LTLIBRARIES = \
 	job-manager/plugins/create-reject.la \
 	job-manager/plugins/perilog-test.la \
 	job-manager/plugins/config.la \
+	job-manager/plugins/conf-cache.la \
 	job-manager/plugins/queues-update.la \
 	job-manager/plugins/jobspec-update.la \
 	job-manager/plugins/jobspec-update-job-list.la \
@@ -1156,6 +1158,15 @@ job_manager_plugins_config_la_CPPFLAGS = \
 job_manager_plugins_config_la_LDFLAGS = \
 	$(fluxplugin_ldflags) -module -rpath /nowhere
 job_manager_plugins_config_la_LIBADD = \
+	$(top_builddir)/src/common/libflux-core.la
+
+job_manager_plugins_conf_cache_la_SOURCES = \
+	job-manager/plugins/conf-cache.c
+job_manager_plugins_conf_cache_la_CPPFLAGS = \
+	$(test_cppflags)
+job_manager_plugins_conf_cache_la_LDFLAGS = \
+	$(fluxplugin_ldflags) -module -rpath /nowhere
+job_manager_plugins_conf_cache_la_LIBADD = \
 	$(top_builddir)/src/common/libflux-core.la
 
 job_manager_plugins_queues_update_la_SOURCES = \

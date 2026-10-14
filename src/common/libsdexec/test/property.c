@@ -13,27 +13,51 @@
 #endif
 
 #include <string.h>
+#include <stdint.h>
 #include <jansson.h>
 #include <flux/core.h>
 
 #include "src/common/libtap/tap.h"
+#include "ccan/str/str.h"
 #include "property.h"
 
 void test_dict (void)
 {
     json_t *dict;
-    int val;
+    int32_t val;
+    uint64_t max;
+    const char *str;
+    const char *badtype;
 
-    if (!(dict = json_pack ("{s:[si]}", "foo", "i", 42)))
+    if (!(dict = json_pack ("{s:[si] s:[ss] s:[ss]}",
+                            "foo", "i", 42,
+                            "MemoryMax", "t", "18446744073709551615",
+                            "ActiveState", "s", "active")))
         BAIL_OUT ("could not create property dict for testing");
 
-    ok (sdexec_property_dict_unpack (dict, "foo", "i", &val) == 0
+    ok (sdexec_property_dict_read (dict, "foo", "i", &val) == 0
         && val == 42,
-        "sdexec_property_dict_unpack works");
+        "sdexec_property_dict_read works");
+    ok (sdexec_property_dict_read (dict, "MemoryMax", "t", &max) == 0
+        && max == UINT64_MAX,
+        "sdexec_property_dict_read reads a uint64 property");
+    ok (sdexec_property_dict_read (dict, "ActiveState", "s", &str) == 0
+        && streq (str, "active"),
+        "sdexec_property_dict_read reads a string property");
     errno = 0;
-    ok (sdexec_property_dict_unpack (dict, "unknown", "i", &val) < 0
+    ok (sdexec_property_dict_read (dict, "unknown", "i", &val) < 0
         && errno == EPROTO,
-        "sdexec_property_dict_unpack name=unknown fails with EPROTO");
+        "sdexec_property_dict_read name=unknown fails with EPROTO");
+    errno = 0;
+    badtype = "u"; // non-literal so check-format-args skips negative tests
+    ok (sdexec_property_dict_read (dict, "foo", badtype, &val) < 0
+        && errno == EPROTO,
+        "sdexec_property_dict_read with the wrong type fails with EPROTO");
+    errno = 0;
+    badtype = "x";
+    ok (sdexec_property_dict_read (dict, "MemoryMax", badtype, &max) < 0
+        && errno == EPROTO,
+        "sdexec_property_dict_read t property as x fails with EPROTO");
 
     json_decref (dict);
 }
@@ -43,6 +67,8 @@ void test_inval (void)
     flux_t *h;
     flux_future_t *f;
     json_t *dict;
+    // non-literal so check-format-args skips calls with an unused bad type
+    const char *badtype = "foo";
 
     if (!(h = flux_open ("loop://", 0)))
         BAIL_OUT ("could not create loop flux_t handle for testing");
@@ -69,11 +95,11 @@ void test_inval (void)
         "sdexec_property_get name=NULL fails with EINVAL");
 
     errno = 0;
-    ok (sdexec_property_get_unpack (NULL, "foo") < 0 && errno == EINVAL,
-        "sdexec_property_get_unpack f=NULL fails with EINVAL");
+    ok (sdexec_property_get_read (NULL, badtype) < 0 && errno == EINVAL,
+        "sdexec_property_get_read f=NULL fails with EINVAL");
     errno = 0;
-    ok (sdexec_property_get_unpack (f, NULL) < 0 && errno == EINVAL,
-        "sdexec_property_get_unpack fmt=NULL fails with EINVAL");
+    ok (sdexec_property_get_read (f, NULL) < 0 && errno == EINVAL,
+        "sdexec_property_get_read type=NULL fails with EINVAL");
 
     errno = 0;
     ok (sdexec_property_get_all (NULL, "sdexec", 0, "foo") == NULL
@@ -105,16 +131,16 @@ void test_inval (void)
         "sdexec_property_changed_path f=NULL fails with EINVAL");
 
     errno = 0;
-    ok (sdexec_property_dict_unpack (NULL, "foo", "bar") < 0
+    ok (sdexec_property_dict_read (NULL, "foo", badtype) < 0
         && errno == EINVAL,
-        "sdexec_property_dict_unpack dict=NULL fails with EINVAL");
+        "sdexec_property_dict_read dict=NULL fails with EINVAL");
     errno = 0;
-    ok (sdexec_property_dict_unpack (dict, NULL, "bar") < 0
+    ok (sdexec_property_dict_read (dict, NULL, badtype) < 0
         && errno == EINVAL,
-        "sdexec_property_dict_unpack name=NULL fails with EINVAL");
-    ok (sdexec_property_dict_unpack (dict, "foo", NULL) < 0
+        "sdexec_property_dict_read name=NULL fails with EINVAL");
+    ok (sdexec_property_dict_read (dict, "foo", NULL) < 0
         && errno == EINVAL,
-        "sdexec_property_dict_unpack fmt=NULL fails with EINVAL");
+        "sdexec_property_dict_read type=NULL fails with EINVAL");
 
     json_decref (dict);
     flux_future_destroy (f);
