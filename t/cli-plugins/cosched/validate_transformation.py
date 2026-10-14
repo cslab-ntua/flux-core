@@ -34,6 +34,27 @@ def parse_args(plugin):
     )
 
     parser.add_argument(
+        "--cores-per-task",
+        type=int,
+        default=1,
+        help="Number of cores per task in the input jobspec (default: 1)",
+    )
+
+    parser.add_argument(
+        "--gpus-per-task",
+        type=int,
+        default=None,
+        help="Number of GPUs per task in the input jobspec (default: none)",
+    )
+
+    parser.add_argument(
+        "--jobspec",
+        metavar="FILE",
+        help="Load an input jobspec from JSON instead of generating one; "
+        "overrides --ntasks, --cores-per-task, --gpus-per-task, and --command",
+    )
+
+    parser.add_argument(
         "--allowed",
         dest="allowed",
         action="store_true",
@@ -99,10 +120,16 @@ def main():
     if args.allowed is not None:
         config["coscheduling-cpu.allowed"] = args.allowed
 
-    jobspec = JobspecV1.from_command(
-        args.command,
-        num_tasks=args.ntasks,
-    )
+    if args.jobspec is not None:
+        with open(args.jobspec) as f:
+            jobspec = JobspecV1(**json.load(f))
+    else:
+        jobspec = JobspecV1.from_command(
+            args.command,
+            num_tasks=args.ntasks,
+            cores_per_task=args.cores_per_task,
+            gpus_per_task=args.gpus_per_task,
+        )
 
     fake_flux_factory = lambda: FakeFlux(config)
 

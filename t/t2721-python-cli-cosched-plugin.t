@@ -46,6 +46,40 @@ test_expect_success 'normal transformation: 20 tasks across sockets' '
 	" actual.json
 '
 
+test_expect_success 'slots with multiple cores are left unchanged' '
+	python3 "$VALIDATOR" \
+		--no-allowed --ntasks 4 --cores-per-task 2 \
+		--waste-threshold 0.0 >expected.json &&
+	python3 "$VALIDATOR" \
+		--allowed --ntasks 4 --cores-per-task 2 \
+		--waste-threshold 0.0 >actual.json &&
+	test_cmp expected.json actual.json
+'
+
+test_expect_success 'slots with both core and GPU resources are left unchanged' '
+	python3 "$VALIDATOR" \
+		--no-allowed --ntasks 4 --gpus-per-task 1 \
+		--waste-threshold 0.0 >expected.json &&
+	python3 "$VALIDATOR" \
+		--allowed --ntasks 4 --gpus-per-task 1 \
+		--waste-threshold 0.0 >actual.json &&
+	test_cmp expected.json actual.json
+'
+
+test_expect_success 'slots with a single non-core resource are left unchanged' '
+	FLUX_URI=local:///no/such/path \
+		flux submit --dry-run --no-spread -n4 hostname >cpu.json &&
+	jq ".resources[0].with = [{\"type\": \"gpu\", \"count\": 1}]" \
+		cpu.json >gpu-only.json &&
+	python3 "$VALIDATOR" \
+		--no-allowed --jobspec gpu-only.json \
+		--waste-threshold 0.0 >expected.json &&
+	python3 "$VALIDATOR" \
+		--allowed --jobspec gpu-only.json \
+		--waste-threshold 0.0 >actual.json &&
+	test_cmp expected.json actual.json
+'
+
 test_expect_success 'co-scheduling is disabled upon user determination' '
 	python3 ${VALIDATOR} \
 		--no-allowed \

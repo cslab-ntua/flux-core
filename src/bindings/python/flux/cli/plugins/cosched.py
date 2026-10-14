@@ -149,6 +149,12 @@ class CoSchedPlugin(CLIPlugin):
                         # if the jobspec specifies more resources than slots don't bother to co-schedule
                         return
                     if resource["type"] == "slot":
+                        # We target only MPI-oriented jobspecs
+                        if len(resource["with"]) != 1 \
+                            or resource["with"][0]["type"] != "core" \
+                            or resource["with"][0]["count"] != 1:
+                            return
+
                         label = resource["label"]
                         for ttype, tcount in task_count.items():
                             if ttype == "per_slot":
