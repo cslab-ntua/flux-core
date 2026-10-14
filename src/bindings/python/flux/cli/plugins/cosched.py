@@ -150,9 +150,11 @@ class CoSchedPlugin(CLIPlugin):
                         return
                     if resource["type"] == "slot":
                         # We target only MPI-oriented jobspecs
-                        if len(resource["with"]) != 1 \
-                            or resource["with"][0]["type"] != "core" \
-                            or resource["with"][0]["count"] != 1:
+                        if (
+                            len(resource["with"]) != 1
+                            or resource["with"][0]["type"] != "core"
+                            or resource["with"][0]["count"] != 1
+                        ):
                             return
 
                         label = resource["label"]
