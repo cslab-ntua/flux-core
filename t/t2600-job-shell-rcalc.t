@@ -69,4 +69,27 @@ test_expect_success 'rcalc: distribute can oversubscribe (e.g. for --add-brokers
 	EOF
 	test_cmp 83.expected 83.out
 '
+test_expect_success 'rcalc: preserve a 1023-character core idset' '
+	cores=$(seq 100 2 610 | paste -sd,) &&
+	flux R encode -r 0 -c "$cores" >long-cores.R &&
+	${rcalc} 1 <long-cores.R >long-cores.out &&
+	cat >long-cores.expected <<-EOF &&
+	Distributing 1 tasks across 1 nodes with 256 cores
+	Used 1 nodes
+	0: rank=0 ntasks=1 cores=$cores
+	EOF
+	test_cmp long-cores.expected long-cores.out
+'
+test_expect_success 'rcalc: terminate an oversized core idset after truncation' '
+	cores=$(seq 100 2 612 | paste -sd,) &&
+	prefix=$(printf "%s" "$cores" | cut -c1-1022) &&
+	flux R encode -r 0 -c "$cores" >oversized-cores.R &&
+	${rcalc} 1 <oversized-cores.R >oversized-cores.out &&
+	cat >oversized-cores.expected <<-EOF &&
+	Distributing 1 tasks across 1 nodes with 257 cores
+	Used 1 nodes
+	0: rank=0 ntasks=1 cores=${prefix}+
+	EOF
+	test_cmp oversized-cores.expected oversized-cores.out
+'
 test_done

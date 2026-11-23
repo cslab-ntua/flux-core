@@ -466,6 +466,7 @@ static void strcpy_trunc (char *dst, size_t dstlen, const char *src)
     else {
         strncpy (dst, src, dstlen-1);
         dst[dstlen-2] = '+'; /* Indicate truncation */
+        dst[dstlen-1] = '\0';
     }
 }
 

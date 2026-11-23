@@ -23,7 +23,7 @@ struct rcalc_rankinfo {
     int rank;                 /* The current broker rank                 */
     int ntasks;               /* Number of tasks assigned to this rank   */
     int ncores;               /* Number of cores allocated on this rank  */
-    char cores [128];         /* String core list (directly from R_lite) */
+    char cores [1024];        /* String core list (directly from R_lite) */
     char gpus [128];          /* String gpu list (directly from R)       */
 };
 
